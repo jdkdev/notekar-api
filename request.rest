@@ -1,0 +1,34 @@
+### vars
+@port = 3001
+@localhost = http://localhost:{{port}}/api/v1
+@contentType = application/json
+###
+
+# @name login
+POST {{localhost}}/login
+content-type: {{contentType}}
+
+{
+    "email": "jordan+20@knight.works",
+    "password": "test"
+}
+
+###
+@accessToken = {{login.response.body.accessToken}}
+
+
+###
+# @name getUsers
+GET {{localhost}}/users
+Authorization: Bearer {{accessToken}}
+
+####
+
+POST {{localhost}}/register
+content-type: {{contentType}}
+
+{
+    "email": "jordan+20@knight.works",
+    "password": "test",
+    "site": "admin.knight.works"
+}
