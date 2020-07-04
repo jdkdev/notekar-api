@@ -18,7 +18,7 @@ function ts(kind = 'ts') {
   let ts = new Date().toJSON().replace(/[-T:.Z]/g, '');
   timestamps.d = Number(ts.substr(2, 6));
   timestamps.t = Number(ts.substr(8, 6));
-  timestamps.ts = Number(ts);
+  timestamps.ts = [...ts].reverse().join('');
   return timestamps[kind]
 }
 function nthIndex(str, pat, n) {
@@ -70,8 +70,8 @@ class Node extends Model$1 {
     super();
     //used by system
     this.self = self.endsWith('/')
-      ? Node.createName(path, meta.name, meta.created, meta.type)
-      : self; //internal ref
+      ? Node.createName(path, meta.name.trim(), meta.created, meta.type)
+      : self.trim(); //internal ref
     this.path = path; //internal ref path
     //
     this.id = id;
@@ -85,9 +85,9 @@ class Node extends Model$1 {
     this.embed = embed; //external ref needs hash?
     this.link = link; // if external link included
     this.attachment = attachment;
-    this.descendants = Node.getEdges(id, 'd');
-    this.fathers = Node.getEdges(id, 'f');
-    this.associates = Node.getEdges(id, 'a');
+    this.descendants = Node.getEdges(self, 'd');
+    this.fathers = Node.getEdges(self, 'f');
+    this.associates = Node.getEdges(self, 'a');
     return this
   }
   static getEdges(id, rel) {
@@ -135,9 +135,11 @@ class Node extends Model$1 {
     console.log({ list });
     return list
   }
-  static createName(path, name, ts = '', type = '', ext = '') {
-    ts = ts || '200529';
-    return path + '/' + name + '.' + ts + '.' + type + ext
+  static createName(path, name, timestamp = '', type = '', ext = '') {
+    timestamp = timestamp || ts('d');
+    path = path === '/' ? '' : path;
+
+    return path + name + '.' + timestamp + '.' + type + ext
   }
   static determineState(self) {
     return 'determiing??'
@@ -216,7 +218,19 @@ class Node extends Model$1 {
     // console.log({ path })
     return [path.trim(), contents]
   }
+  async destroy() {
+    this.deleteEdges();
+    unlink(resolve(NOTES_PATH, this.self), (err) => {
+      if (err) throw err
+      console.log(this.self + ' was deleted');
+    });
+    return { status: 'deleted' }
+  }
   async save() {
+    console.log(
+      '++++++++++++++++++++++++++++++++++++++++++++++++++=\n',
+      this.self
+    );
     //desiredSelf
     //does it exist?
     // if this.state == stored
@@ -226,7 +240,7 @@ class Node extends Model$1 {
       //calculate current desired name
       let desiredPath = Node.createName(
         this.path,
-        this.meta.name,
+        this.meta.name.trim().toLowerCase(),
         this.meta.created,
         this.meta.type,
         'md'
@@ -235,6 +249,7 @@ class Node extends Model$1 {
       // grab path
       // compare to old path and name
       let selfHasChanged = this.self !== desiredPath;
+
       if (selfHasChanged) {
         unlink(resolve(NOTES_PATH, this.self), (err) => {
           if (err) throw err
@@ -247,32 +262,48 @@ class Node extends Model$1 {
     }
 
     if (!this.self.endsWith('.md')) {
-      this.self += '.md';
+      this.self += 'md';
     }
+    this.self = this.self.toLowerCase();
+
     this.meta.self = this.self;
     this.meta.id = this.id;
-    //
+
     if (this.edges.length) {
-      Model$1.run('DELETE FROM edges WHERE target = $id', { id: this.id });
-      this.edges.map((edge) => {
-        Model$1.run(
-          'INSERT INTO edges (target, source, relation) VALUES($target, $source, $relation)',
-          {
-            target: this.id,
-            source: edge.source,
-            relation: edge.rel,
-          }
-        );
-      });
+      this.handleEdges();
     }
     let contents = '---\n' + YJS.safeDump(this.meta) + '---\n' + this.matter.md;
-    writeFileSync(NOTES_PATH + this.self, contents);
+
+    console.log({ fileName: this.self });
+
+    writeFileSync(resolve(NOTES_PATH, this.self), contents);
     this.state = 'stored';
 
     return this
   }
 
+  deleteEdges() {
+    Model$1.run('DELETE FROM edges WHERE target = $self', { self: this.self });
+    Model$1.run('DELETE FROM edges WHERE source = $self', { self: this.self });
+  }
+
+  handleEdges() {
+    Model$1.run('DELETE FROM edges WHERE target = $self', { self: this.self });
+    this.edges.map((edge) => {
+      Model$1.run(
+        'INSERT INTO edges (target, source, relation) VALUES($target, $source, $relation)',
+        {
+          target: this.self,
+          source: edge.source,
+          relation: edge.rel,
+        }
+      );
+    });
+  }
+
   static fileToNode(path) {
+    //TODO: decide where the NOTES_PATH gets used
+    //ideally least amount places possible
     let nPath = path.split(NOTES_PATH).join('');
     // console.log({ nPath })
     let mkdown;
@@ -349,6 +380,10 @@ class Node extends Model$1 {
       attachment: '',
     };
     return new this(data)
+  }
+  static get(path) {
+    let fileData = this.fileToNode(resolve(NOTES_PATH, path));
+    return new this(fileData)
   }
 }
 
@@ -427,7 +462,8 @@ const FileController = {
   async brain2(req, res) {
     let files = await Node.getFiles();
     let brain = { nodes: files };
-    res.json({ data: { root: brain.nodes[1], brain } });
+    let root = brain.nodes.find((node) => node.meta.root);
+    res.json({ data: { root, brain } });
   },
   async randomNode(req, res) {
     let node = await Node.createFakeNode();
@@ -463,6 +499,14 @@ const FileController = {
     res.json({ data, meta: { type: 'files', count: data.length } });
   },
 
+  //TODO make this function work
+  async articles({ params: { published, format } }, res) {
+    let node = Node.getWhere('meta.published', published);
+    if (format === 'html') {
+      return res.json({ data: node.matter.html })
+    }
+    return res.json({ data: node.matter.md })
+  },
   async all(req, res) {
     let filesList = await readDir(NOTES_PATH$1);
 
@@ -508,6 +552,14 @@ const FileController = {
     node.save();
     console.log({ updated: node });
     res.json({ data: node });
+  },
+  async destroy({ params: { filepath } }, res) {
+    //need to get full path from file or self
+    let node = Node.get(filepath);
+    console.log({ node });
+    node.destroy();
+    // node rm or move to .deleted
+    res.json({ data: filepath });
   },
   async update2({ body: { data } }, res) {
     //TODO replace with File Model
@@ -730,6 +782,16 @@ router.get(
   '/node',
   // AuthController.authenticateTokenMiddleware,
   FileController.randomNode
+);
+router.get(
+  '/articles/:published',
+  // AuthController.authenticateTokenMiddleware,
+  FileController.articles
+);
+router.delete(
+  '/:filepath',
+  // AuthController.authenticateTokenMiddleware,
+  FileController.destroy
 );
 router.get(
   '/raw',

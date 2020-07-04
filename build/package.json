@@ -9,7 +9,7 @@
     "watch": "nodemon build/api.js",
     "build": "rollup -c --environment INCLUDE_DEPS,BUILD:production",
     "test": "jest",
-    "db": "sqlite3 ~/code/Z/DB/testapp/db.sqlite",
+    "db": "sqlite3 ~/code/Z/DB/notekar/db.sqlite",
     "browser:refresh": "~/.browser_refresh",
     "browser:watch": "~/.browser_refresh -v",
     "tar": "tar -czvf $NAME-api.tar.gz -C build .",

@@ -39,6 +39,16 @@ router.get(
   FileController.randomNode
 )
 router.get(
+  '/articles/:published',
+  // AuthController.authenticateTokenMiddleware,
+  FileController.articles
+)
+router.delete(
+  '/:filepath',
+  // AuthController.authenticateTokenMiddleware,
+  FileController.destroy
+)
+router.get(
   '/raw',
   // AuthController.authenticateTokenMiddleware,
   FileController.raw

@@ -75,7 +75,8 @@ const FileController = {
   async brain2(req, res) {
     let files = await Node.getFiles()
     let brain = { nodes: files }
-    res.json({ data: { root: brain.nodes[1], brain } })
+    let root = brain.nodes.find((node) => node.meta.root)
+    res.json({ data: { root, brain } })
   },
   async randomNode(req, res) {
     let node = await Node.createFakeNode()
@@ -111,6 +112,14 @@ const FileController = {
     res.json({ data, meta: { type: 'files', count: data.length } })
   },
 
+  //TODO make this function work
+  async articles({ params: { published, format } }, res) {
+    let node = Node.getWhere('meta.published', published)
+    if (format === 'html') {
+      return res.json({ data: node.matter.html })
+    }
+    return res.json({ data: node.matter.md })
+  },
   async all(req, res) {
     let filesList = await readDir(NOTES_PATH)
 
@@ -156,6 +165,14 @@ const FileController = {
     node.save()
     console.log({ updated: node })
     res.json({ data: node })
+  },
+  async destroy({ params: { filepath } }, res) {
+    //need to get full path from file or self
+    let node = Node.get(filepath)
+    console.log({ node })
+    node.destroy()
+    // node rm or move to .deleted
+    res.json({ data: filepath })
   },
   async update2({ body: { data } }, res) {
     //TODO replace with File Model
