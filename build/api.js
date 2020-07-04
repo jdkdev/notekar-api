@@ -385,6 +385,11 @@ class Node extends Model$1 {
     let fileData = this.fileToNode(resolve(NOTES_PATH, path));
     return new this(fileData)
   }
+  static getWhereMeta(field, value) {
+    let path = 'jordan.200606.md';
+    let fileData = this.fileToNode(resolve(NOTES_PATH, path));
+    return new this(fileData)
+  }
 }
 
 const { env: env$2 } = require('@frontierjs/backend');
@@ -500,13 +505,17 @@ const FileController = {
   },
 
   //TODO make this function work
-  async articles({ params: { published, format } }, res) {
-    let node = Node.getWhere('meta.published', published);
-    if (format === 'html') {
-      return res.json({ data: node.matter.html })
+  async articles({ params }, res) {
+    let nodes = await Node.getFiles();
+    let list = nodes.filter((node) => node.meta.published === params.published);
+
+    if (params.format === 'html') {
+      list = list.map((node) => node.matter.html);
+      return res.json({ data: list })
     }
-    return res.json({ data: node.matter.md })
+    return res.json({ data: list })
   },
+
   async all(req, res) {
     let filesList = await readDir(NOTES_PATH$1);
 
@@ -762,6 +771,11 @@ router.get(
   '/',
   // AuthController.authenticateTokenMiddleware,
   FileController.allProcessed
+);
+router.get(
+  '/published/:published/:format*?',
+  // AuthController.authenticateTokenMiddleware,
+  FileController.articles
 );
 router.get(
   '/brain',

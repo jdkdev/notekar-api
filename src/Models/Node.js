@@ -384,6 +384,11 @@ class Node extends Model {
     let fileData = this.fileToNode(resolve(NOTES_PATH, path))
     return new this(fileData)
   }
+  static getWhereMeta(field, value) {
+    let path = 'jordan.200606.md'
+    let fileData = this.fileToNode(resolve(NOTES_PATH, path))
+    return new this(fileData)
+  }
 }
 
 export default Node

@@ -19,6 +19,11 @@ router.get(
   FileController.allProcessed
 )
 router.get(
+  '/published/:published/:format*?',
+  // AuthController.authenticateTokenMiddleware,
+  FileController.articles
+)
+router.get(
   '/brain',
   // AuthController.authenticateTokenMiddleware,
   FileController.brain
