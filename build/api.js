@@ -132,7 +132,6 @@ class Node extends Model$1 {
       );
     }
     let list = [...ids1.map((i) => i.id), ...ids2.map((i) => i.id)];
-    console.log({ list });
     return list
   }
   static createName(path, name, timestamp = '', type = '', ext = '') {
@@ -222,15 +221,10 @@ class Node extends Model$1 {
     this.deleteEdges();
     unlink(resolve(NOTES_PATH, this.self), (err) => {
       if (err) throw err
-      console.log(this.self + ' was deleted');
     });
     return { status: 'deleted' }
   }
   async save() {
-    console.log(
-      '++++++++++++++++++++++++++++++++++++++++++++++++++=\n',
-      this.self
-    );
     //desiredSelf
     //does it exist?
     // if this.state == stored
@@ -245,7 +239,6 @@ class Node extends Model$1 {
         this.meta.type,
         'md'
       );
-      console.log({ desiredPath });
       // grab path
       // compare to old path and name
       let selfHasChanged = this.self !== desiredPath;
@@ -253,7 +246,6 @@ class Node extends Model$1 {
       if (selfHasChanged) {
         unlink(resolve(NOTES_PATH, this.self), (err) => {
           if (err) throw err
-          console.log(this.self + ' was deleted');
         });
         this.self = desiredPath;
       }
@@ -273,8 +265,6 @@ class Node extends Model$1 {
       this.handleEdges();
     }
     let contents = '---\n' + YJS.safeDump(this.meta) + '---\n' + this.matter.md;
-
-    console.log({ fileName: this.self });
 
     writeFileSync(resolve(NOTES_PATH, this.self), contents);
     this.state = 'stored';
@@ -553,19 +543,16 @@ const FileController = {
   async store({ body: { data } }, res) {
     let node = new Node(data);
     node.save();
-    console.log({ stored: node });
     res.json({ data: node });
   },
   async update({ body: { data } }, res) {
     let node = new Node(data);
     node.save();
-    console.log({ updated: node });
     res.json({ data: node });
   },
   async destroy({ params: { filepath } }, res) {
     //need to get full path from file or self
     let node = Node.get(filepath);
-    console.log({ node });
     node.destroy();
     // node rm or move to .deleted
     res.json({ data: filepath });
@@ -654,7 +641,7 @@ class User extends Model$2 {
       let result = this.create({ email, password: hashedPassword });
       return result
     } catch (e) {
-      return console.log({ e })
+      return void 0
     }
   }
   static emailTaken(email) {
@@ -697,7 +684,6 @@ const AuthController = {
       let user = ({ email, password } = req.body);
       res.status(201).send(await User.validateThenStore(user));
     } catch (e) {
-      console.log('error', e);
       res.status(500).send();
     }
   },
@@ -714,7 +700,6 @@ const AuthController = {
         return res.sendStatus(401)
       }
     } catch (e) {
-      console.log(e);
       return res.status(401).json({ message: 'You are not registered!' })
     }
   },
@@ -862,7 +847,6 @@ const UserController = {
   },
   restore({ params: { id } }, res) {
     let user = User.restore(parseInt(id));
-    console.log({ user });
     res.json(user);
   },
   logout(req, res) {
@@ -940,7 +924,5 @@ const { env: env$7 } = require('@frontierjs/backend');
 let port = env$7.get('PORT');
 
 server.listen(port, () =>
-  console.log(`
-  Server listening on port ${port}!
-`)
+  void 0
 );
