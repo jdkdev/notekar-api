@@ -33,7 +33,7 @@
   "license": "ISC",
   "dependencies": {
     "@frontierjs/backend": "github:frontierjs/backend",
-    "bcrypt": "^3.0.8",
+    "bcrypt": "^5.0.0",
     "better-sqlite3": "^5.4.3",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
