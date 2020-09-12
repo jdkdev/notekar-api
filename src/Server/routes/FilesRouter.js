@@ -1,5 +1,8 @@
-let express = require('express')
-let router = express.Router()
+import FileController from '$c/FileController'
+import AuthController from '$c/AuthController'
+
+const express = require('express')
+const router = express.Router()
 
 const bodyParser = require('body-parser')
 router.use(bodyParser.urlencoded({ extended: false }))
@@ -9,9 +12,6 @@ router.use('/', (req, res, next) => {
   // console.log({ body: req.user })
   next()
 })
-
-import FileController from '$c/FileController'
-import AuthController from '$c/AuthController'
 
 router.get(
   '/',
@@ -71,7 +71,7 @@ router.get(
 )
 router.patch(
   '/',
-  //AuthController.authenticateTokenMiddleware,
+  // AuthController.authenticateTokenMiddleware,
   FileController.update
 )
 

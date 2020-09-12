@@ -132,6 +132,7 @@ class Node extends Model$1 {
       );
     }
     let list = [...ids1.map((i) => i.id), ...ids2.map((i) => i.id)];
+    console.log({ list });
     return list
   }
   static createName(path, name, timestamp = '', type = '', ext = '') {
@@ -221,10 +222,15 @@ class Node extends Model$1 {
     this.deleteEdges();
     unlink(resolve(NOTES_PATH, this.self), (err) => {
       if (err) throw err
+      console.log(this.self + ' was deleted');
     });
     return { status: 'deleted' }
   }
   async save() {
+    console.log(
+      '++++++++++++++++++++++++++++++++++++++++++++++++++=\n',
+      this.self
+    );
     //desiredSelf
     //does it exist?
     // if this.state == stored
@@ -239,6 +245,7 @@ class Node extends Model$1 {
         this.meta.type,
         'md'
       );
+      console.log({ desiredPath });
       // grab path
       // compare to old path and name
       let selfHasChanged = this.self !== desiredPath;
@@ -246,6 +253,7 @@ class Node extends Model$1 {
       if (selfHasChanged) {
         unlink(resolve(NOTES_PATH, this.self), (err) => {
           if (err) throw err
+          console.log(this.self + ' was deleted');
         });
         this.self = desiredPath;
       }
@@ -265,6 +273,8 @@ class Node extends Model$1 {
       this.handleEdges();
     }
     let contents = '---\n' + YJS.safeDump(this.meta) + '---\n' + this.matter.md;
+
+    console.log({ fileName: this.self });
 
     writeFileSync(resolve(NOTES_PATH, this.self), contents);
     this.state = 'stored';
@@ -390,31 +400,31 @@ const { resolve: resolve$1 } = require('path');
 
 const NOTES_PATH$1 = env$2.get('NOTES_PATH');
 
-function fileObject(file, contents, stats) {
-  let f = {
+function fileObject (file, contents, stats) {
+  const f = {
     id: stats.dev + '' + stats.ino,
     name: file,
     stats,
     perm: parseInt(stats.mode.toString(8), 10),
-    contents,
+    contents
   };
   return f
 }
-function fileObject2(filename, markdown, data) {
-  let f = {
-    filename: filename,
-    data,
-    markdown,
-    html: md.render(markdown),
-  };
-  return f
-}
+// function fileObject2 (filename, markdown, data) {
+//   const f = {
+//     filename: filename,
+//     data,
+//     markdown,
+//     html: md.render(markdown)
+//   }
+//   return f
+// }
 
 const FileController = {
-  async brain(req, res) {
+  async brain (req, res) {
     // convert yaml in file to this
 
-    let node = {
+    const node = {
       id: 123456789,
       self: 'node/123456',
       created: '2020-05-03',
@@ -429,11 +439,11 @@ const FileController = {
       // fathers: [proto, proto],
       descendants: [
         { name: 'sibling!', descendants: [] },
-        { name: 'sibling2', descendants: [] },
-      ],
+        { name: 'sibling2', descendants: [] }
+      ]
       // associates: [proto, proto],
     };
-    let proto = {
+    const proto = {
       id: 123456789,
       created: '2020-05-03',
       updated: '2020-05-05',
@@ -446,47 +456,47 @@ const FileController = {
       type: null,
       fathers: [node, node],
       descendants: [node, node, node],
-      associates: [node, node],
+      associates: [node, node]
     };
     // node.children = [proto, proto, proto]
-    let brain = {
-      root: proto,
+    const brain = {
+      root: proto
     };
     res.json({ data: { brain } });
   },
-  async brain2(req, res) {
-    let files = await Node.getFiles();
-    let brain = { nodes: files };
-    let root = brain.nodes.find((node) => node.meta.root);
+  async brain2 (req, res) {
+    const files = await Node.getFiles();
+    const brain = { nodes: files };
+    const root = brain.nodes.find((node) => node.meta.root);
     res.json({ data: { root, brain } });
   },
-  async randomNode(req, res) {
-    let node = await Node.createFakeNode();
+  async randomNode (req, res) {
+    const node = await Node.createFakeNode();
     res.json({ data: { node } });
   },
-  async allProcessed(req, res) {
-    let filesList = await readdir$1(NOTES_PATH$1);
-    let filenames = filesList.filter((filename) => filename.includes('.md'));
+  async allProcessed (req, res) {
+    const filesList = await readdir$1(NOTES_PATH$1);
+    const filenames = filesList.filter((filename) => filename.includes('.md'));
 
-    let processed = filenames.map((filename) => {
-      let fp = resolve$1(NOTES_PATH$1 + filename);
-      let content = readFileSync$1(fp, 'utf8');
+    const processed = filenames.map((filename) => {
+      const fp = resolve$1(NOTES_PATH$1 + filename);
+      const content = readFileSync$1(fp, 'utf8');
 
       if (content[0] === '-') {
-        let [md, data] = splitDataFromMarkdown(content);
+        const [md, data] = splitDataFromMarkdown(content);
         // console.log({ md, data })
-        if (data && data.mode == 644) {
+        if (data && data.mode === 644) {
           return fileObject2(filename, md, data)
         }
       }
     });
-    let newA = processed.filter((obj) => !!obj !== false);
+    const newA = processed.filter((obj) => !!obj !== false);
 
     res.json({ data: newA });
   },
 
-  async raw(req, res) {
-    let data = [];
+  async raw (req, res) {
+    const data = [];
     for await (const filename of walkDir(NOTES_PATH$1)) {
       data.push(getFile(filename));
     }
@@ -494,9 +504,9 @@ const FileController = {
     res.json({ data, meta: { type: 'files', count: data.length } });
   },
 
-  //TODO make this function work
-  async articles({ params }, res) {
-    let nodes = await Node.getFiles();
+  // TODO make this function work
+  async articles ({ params }, res) {
+    const nodes = await Node.getFiles();
     let list = nodes.filter((node) => node.meta.published === params.published);
 
     if (params.format === 'html') {
@@ -506,83 +516,86 @@ const FileController = {
     return res.json({ data: list })
   },
 
-  async all(req, res) {
-    let filesList = await readDir(NOTES_PATH$1);
+  async all (req, res) {
+    const filesList = await readdir$1(NOTES_PATH$1);
 
-    let files = filesList
+    const files = filesList
       .filter((file) => file.includes('.md'))
       .map((file) => {
-        let fp = NOTES_PATH$1 + file;
-        let stats = statSync$1(fp);
-        let contents = readFileSync$1(fp, 'utf8');
+        const fp = NOTES_PATH$1 + file;
+        const stats = statSync$1(fp);
+        const contents = readFileSync$1(fp, 'utf8');
         return fileObject(file, stats, contents)
       });
     res.json({ data: files });
   },
 
-  async get({ params: { id } }, res) {
+  async get ({ params: { id } }, res) {
     let fp = '';
-    let filesList = await readDir(NOTES_PATH$1);
-    let file = filesList.find((file) => {
+    const filesList = await readdir$1(NOTES_PATH$1);
+    const file = filesList.find((file) => {
       fp = NOTES_PATH$1 + file;
-      let { dev, ino } = statSync$1(fp);
-      return id == dev + '' + ino
+      const { dev, ino } = statSync$1(fp);
+      return id === dev + '' + ino
     });
-    let stats = statSync$1(fp);
-    let contents = readFileSync$1(fp, 'utf8');
-    let f = {
+    const stats = statSync$1(fp);
+    const contents = readFileSync$1(fp, 'utf8');
+    const f = {
       id: stats.dev + '' + stats.ino,
       name: file,
       stats,
       perm: parseInt(stats.mode.toString(8), 10),
-      contents,
+      contents
     };
     res.json({ data: f });
   },
-  //new Node File
-  async store({ body: { data } }, res) {
-    let node = new Node(data);
+  // new Node File
+  async store ({ body: { data } }, res) {
+    const node = new Node(data);
     node.save();
+    console.log({ stored: node });
     res.json({ data: node });
   },
-  async update({ body: { data } }, res) {
-    let node = new Node(data);
+  async update ({ body: { data } }, res) {
+    const node = new Node(data);
     node.save();
+    console.log({ updated: node });
     res.json({ data: node });
   },
-  async destroy({ params: { filepath } }, res) {
-    //need to get full path from file or self
-    let node = Node.get(filepath);
+  async destroy ({ params: { filepath } }, res) {
+    // need to get full path from file or self
+    const node = Node.get(filepath);
+    console.log({ node });
     node.destroy();
     // node rm or move to .deleted
     res.json({ data: filepath });
-  },
-  async update2({ body: { data } }, res) {
-    //TODO replace with File Model
-    // let fp = FileController2.find(id)
-    let fp = '';
-    let filesList = await readDir(NOTES_PATH$1);
-    let f = filesList.find((file) => {
-      fp = NOTES_PATH$1 + file;
-      let { dev, ino } = statSync$1(fp);
-      return id == dev + '' + ino
-    });
-    // console.log({f})
-    //TODO Model file.save();
-    writeFileSync$1(fp, data.contents);
-    res.json({ data: f });
-  },
+  }
+  // async update2 ({ body: { data } }, res) {
+  //   // TODO replace with File Model
+  //   // let fp = FileController2.find(id)
+  //   let fp = ''
+  //   const filesList = await readDir(NOTES_PATH)
+  //   const f = filesList.find((file) => {
+  //     fp = NOTES_PATH + file
+  //     const { dev, ino } = statSync(fp)
+  //     return id === dev + '' + ino
+  //   })
+  //   // console.log({f})
+  //   // TODO Model file.save();
+  //   writeFileSync(fp, data.contents)
+  //   res.json({ data: f })
+  // }
   // Shared by all functions: find file path based on id
-  async find(id) {
-    let fp = '';
-    let filesList = await readDir(NOTES_PATH$1);
-    let file = filesList.find((file) => {
-      fp = NOTES_PATH$1 + file;
-      let { dev, ino } = statSync$1(fp);
-      return id == dev + '' + ino
-    });
-    return fp
-  },
+//   async find (id) {
+//     let fp = ''
+//     const filesList = await readDir(NOTES_PATH)
+//     filesList.find((file) => {
+//       fp = NOTES_PATH + file
+//       const { dev, ino } = statSync(fp)
+//       return id === dev + '' + ino
+//     })
+//     return fp
+//   }
 };
 
 const { env: env$3 } = require('@frontierjs/backend');
@@ -641,7 +654,7 @@ class User extends Model$2 {
       let result = this.create({ email, password: hashedPassword });
       return result
     } catch (e) {
-      return void 0
+      return console.log({ e })
     }
   }
   static emailTaken(email) {
@@ -684,6 +697,7 @@ const AuthController = {
       let user = ({ email, password } = req.body);
       res.status(201).send(await User.validateThenStore(user));
     } catch (e) {
+      console.log('error', e);
       res.status(500).send();
     }
   },
@@ -700,6 +714,7 @@ const AuthController = {
         return res.sendStatus(401)
       }
     } catch (e) {
+      console.log(e);
       return res.status(401).json({ message: 'You are not registered!' })
     }
   },
@@ -740,8 +755,8 @@ const AuthController = {
   }
 };
 
-let express = require('express');
-let router = express.Router();
+const express = require('express');
+const router = express.Router();
 
 const bodyParser = require('body-parser');
 router.use(bodyParser.urlencoded({ extended: false }));
@@ -810,7 +825,7 @@ router.get(
 );
 router.patch(
   '/',
-  //AuthController.authenticateTokenMiddleware,
+  // AuthController.authenticateTokenMiddleware,
   FileController.update
 );
 
@@ -847,6 +862,7 @@ const UserController = {
   },
   restore({ params: { id } }, res) {
     let user = User.restore(parseInt(id));
+    console.log({ user });
     res.json(user);
   },
   logout(req, res) {
@@ -924,5 +940,7 @@ const { env: env$7 } = require('@frontierjs/backend');
 let port = env$7.get('PORT');
 
 server.listen(port, () =>
-  void 0
+  console.log(`
+  Server listening on port ${port}!
+`)
 );
